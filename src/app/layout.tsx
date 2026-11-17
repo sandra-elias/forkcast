@@ -16,7 +16,7 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: "Forkcast",
-  description: "Restaurant roulette: can't decide where to eat? Spin for it.",
+  description: "Can't decide where to eat? Spin for a restaurant near you.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

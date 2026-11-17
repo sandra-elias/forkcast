@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Black "plate" -->
+  <circle cx="32" cy="32" r="32" fill="#171717"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Fork: three tines joined in a curve, then the handle -->
+    <path d="M19 15v9M24 15v9M29 15v9"/>
+    <path d="M19 24a5 5 0 0 0 10 0"/>
+    <path d="M24 29v20"/>
+    <!-- Knife: handle -->
+    <path d="M42 33v16"/>
+  </g>
+  <!-- Knife: blade -->
+  <path d="M40.5 33V15.5c0-.9 1-1.4 1.7-.8C45.6 17.6 47 23 47 29v2.5a1.5 1.5 0 0 1-1.5 1.5z" fill="#ffffff"/>
+</svg>
