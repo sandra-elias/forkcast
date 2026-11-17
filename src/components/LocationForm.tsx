@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LOOKUP_FAILED_MESSAGE, type ResolvedLocation } from "@/lib/geocode";
 import { parsePostalCode } from "@/lib/postalCode";
+import { locationToSearchParams } from "@/lib/search";
 
 type Status =
   | { kind: "idle" }
   | { kind: "error"; message: string }
-  | { kind: "loading"; source: "code" | "location" }
-  // Temporary success state for Stage 3. Stage 4 replaces it with a jump to the map screen.
-  | { kind: "found"; location: ResolvedLocation };
+  // Stays "loading" until the map page opens, so the button keeps saying "Searching…".
+  | { kind: "loading"; source: "code" | "location" };
 
 const PERMISSION_DENIED_MESSAGE =
   "No problem! Location access is off, so please enter your zip or postal code instead.";
@@ -30,12 +31,17 @@ async function fetchLocation(url: string): Promise<ResolvedLocation> {
 export default function LocationForm() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const router = useRouter();
+
+  // Next.js may keep this page alive in the background after we open the map.
+  // When we leave it, reset the form so pressing Back doesn't show a stuck "Searching…".
+  useEffect(() => () => setStatus({ kind: "idle" }), []);
 
   async function lookUp(url: string, source: "code" | "location") {
     setStatus({ kind: "loading", source });
     try {
       const location = await fetchLocation(url);
-      setStatus({ kind: "found", location });
+      router.push(`/map?${locationToSearchParams(location)}`);
     } catch (err) {
       setStatus({ kind: "error", message: (err as Error).message });
     }
@@ -81,12 +87,7 @@ export default function LocationForm() {
 
   const isError = status.kind === "error";
   const isLoading = status.kind === "loading";
-  const statusText =
-    status.kind === "error"
-      ? status.message
-      : status.kind === "found"
-        ? `Found: ${status.location.label}. The map is coming in Stage 4.`
-        : "";
+  const statusText = status.kind === "error" ? status.message : "";
 
   return (
     <div className="w-full max-w-sm">
