@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LOOKUP_FAILED_MESSAGE, type ResolvedLocation } from "@/lib/geocode";
+import { LOOKUP_FAILED_MESSAGE, type ResolvedLocation, roundCoord } from "@/lib/geocode";
 import { parsePostalCode } from "@/lib/postalCode";
 import { locationToSearchParams } from "@/lib/search";
 
@@ -25,6 +25,7 @@ async function fetchLocation(url: string): Promise<ResolvedLocation> {
   }
   const body = await res.json().catch(() => null);
   if (!res.ok) throw new Error(body?.error ?? LOOKUP_FAILED_MESSAGE);
+  if (typeof body?.lat !== "number" || typeof body?.lon !== "number") throw new Error(LOOKUP_FAILED_MESSAGE);
   return body as ResolvedLocation;
 }
 
@@ -69,8 +70,10 @@ export default function LocationForm() {
     setStatus({ kind: "loading", source: "location" });
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude, longitude } = pos.coords;
-        lookUp(`/api/reverse-geocode?lat=${latitude}&lon=${longitude}`, "location");
+        // Round to ~100 m before sending: enough to find nearby food, without sharing an exact spot.
+        const lat = roundCoord(pos.coords.latitude);
+        const lon = roundCoord(pos.coords.longitude);
+        lookUp(`/api/reverse-geocode?lat=${lat}&lon=${lon}`, "location");
       },
       (err) => {
         setStatus({

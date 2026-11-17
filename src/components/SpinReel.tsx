@@ -25,7 +25,9 @@ export default function SpinReel({ names, winner, onDone }: Props) {
 
   return (
     <div className="flex h-40 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-zinc-300 px-4 text-center dark:border-zinc-700">
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">Spinning…</p>
+      <p role="status" className="text-sm text-zinc-500 dark:text-zinc-400">
+        Spinning…
+      </p>
       {/* aria-hidden: screen readers hear only the final result, not every flashing name */}
       <p
         key={index}

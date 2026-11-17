@@ -41,7 +41,7 @@ Headline font Space Grotesk (medium weight), body font Inter.
   most places have none). Show "Open now"/"Closed now" and the hours only
   when known.
 - Mobile-first, friendly loading and error states.
-- .env.local must be in .gitignore; create .env.example with empty values.
+- .env.local must be in .gitignore (never committed).
 
 ## Out of scope
 Accounts, group rooms, favorites, ratings, price filter, analytics.

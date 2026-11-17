@@ -100,7 +100,7 @@ export default function Filters({ openNow, onOpenNowChange, excluded, onExcluded
             <button
               type="button"
               onClick={() => onExcludedChange([])}
-              className="mt-3 text-sm underline underline-offset-4 hover:text-zinc-500"
+              className="mt-3 text-sm underline underline-offset-4 hover:text-zinc-500 dark:hover:text-zinc-400"
             >
               Clear all
             </button>

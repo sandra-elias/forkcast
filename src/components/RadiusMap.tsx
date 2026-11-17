@@ -62,7 +62,7 @@ export default function RadiusMap({ lat, lon, radiusMeters, pick }: Props) {
 
   if (!apiKey) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-zinc-500">
+      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
         Map unavailable: NEXT_PUBLIC_GEOAPIFY_MAP_KEY is missing from .env.local.
       </div>
     );

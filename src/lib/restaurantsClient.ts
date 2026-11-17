@@ -50,6 +50,7 @@ export async function getRestaurants(s: RestaurantSearch): Promise<RestaurantWit
   const body = await res.json().catch(() => null);
   if (!res.ok) throw new Error(body?.error ?? "Something went wrong finding restaurants. Please try again.");
 
+  if (!Array.isArray(body?.restaurants)) throw new Error("Something went wrong finding restaurants. Please try again.");
   const restaurants = body.restaurants as RestaurantWithStatus[];
   cache.set(key, { at: Date.now(), restaurants });
   return restaurants;

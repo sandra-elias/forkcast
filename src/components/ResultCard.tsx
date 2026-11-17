@@ -31,7 +31,7 @@ export default function ResultCard({ restaurant: r, country, onSpinAgain }: Prop
       <h2
         ref={headingRef}
         tabIndex={-1}
-        className="mt-1 font-display text-3xl font-medium tracking-tight focus:outline-none"
+        className="mt-1 font-display text-3xl font-medium tracking-tight break-words focus:outline-none"
       >
         {r.name}
       </h2>
@@ -77,7 +77,7 @@ export default function ResultCard({ restaurant: r, country, onSpinAgain }: Prop
           <div>
             <dt className="text-zinc-500 dark:text-zinc-400">Phone</dt>
             <dd>
-              <a href={telHref(r.phone)} className="underline underline-offset-4 hover:text-zinc-500">
+              <a href={telHref(r.phone)} className="underline underline-offset-4 hover:text-zinc-500 dark:hover:text-zinc-400">
                 {r.phone}
               </a>
             </dd>
@@ -91,7 +91,7 @@ export default function ResultCard({ restaurant: r, country, onSpinAgain }: Prop
                 href={r.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="break-all underline underline-offset-4 hover:text-zinc-500"
+                className="break-all underline underline-offset-4 hover:text-zinc-500 dark:hover:text-zinc-400"
               >
                 {displayHost(r.website)}
                 <span className="sr-only"> (opens in a new tab)</span>
