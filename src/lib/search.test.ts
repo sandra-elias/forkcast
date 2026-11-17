@@ -35,6 +35,13 @@ describe("location URL params", () => {
     expect(locationFromSearchParams(new URLSearchParams(qs))).toEqual(loc);
   });
 
+  it("round-trips a time zone and drops an invalid one", () => {
+    const withTz = { ...loc, timezone: "America/Los_Angeles" };
+    expect(locationFromSearchParams(new URLSearchParams(locationToSearchParams(withTz)))).toEqual(withTz);
+    const bad = new URLSearchParams(locationToSearchParams(loc) + "&tz=Not/AZone");
+    expect(locationFromSearchParams(bad)).toEqual(loc);
+  });
+
   it("rejects an unsupported country", () => {
     expect(locationFromSearchParams(new URLSearchParams("lat=1&lon=2&country=GB"))).toBeNull();
   });

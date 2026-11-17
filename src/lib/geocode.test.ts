@@ -20,6 +20,11 @@ describe("pickPostcodeResult", () => {
     });
   });
 
+  it("keeps the time zone when Geoapify provides one", () => {
+    const r = pickPostcodeResult([{ ...la, timezone: { name: "America/Los_Angeles" } }], "US", "90210");
+    expect(r?.timezone).toBe("America/Los_Angeles");
+  });
+
   it("accepts a US result returned as ZIP+4", () => {
     expect(pickPostcodeResult([{ ...la, postcode: "90210-1234" }], "US", "90210")).not.toBeNull();
   });

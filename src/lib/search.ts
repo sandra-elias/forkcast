@@ -1,7 +1,7 @@
 // Search settings for the map screen: radius units, cuisines, and URL helpers.
 // Pure (no React, no network), so it's tested in search.test.ts.
 
-import { type ResolvedLocation, parseLatLon } from "./geocode";
+import { type ResolvedLocation, isValidTimezone, parseLatLon } from "./geocode";
 import type { Country } from "./postalCode";
 
 // ---------- Radius ----------
@@ -20,6 +20,8 @@ export const RADIUS: Record<Country, RadiusConfig> = {
   US: { unit: "mi", unitLabel: "miles", min: 1, max: 25, default: 5, metersPerUnit: 1609.344 },
   CA: { unit: "km", unitLabel: "kilometres", min: 1, max: 40, default: 8, metersPerUnit: 1000 },
 };
+
+export const EMPTY_MESSAGE = "No restaurants found — try a bigger radius.";
 
 export function radiusToMeters(value: number, country: Country): number {
   return Math.round(value * RADIUS[country].metersPerUnit);
@@ -58,12 +60,14 @@ export type CuisineId = (typeof CUISINES)[number]["id"];
 // Keeping the location in the URL means refreshing the page (or sharing the link) still works.
 
 export function locationToSearchParams(loc: ResolvedLocation): string {
-  return new URLSearchParams({
+  const params = new URLSearchParams({
     lat: String(loc.lat),
     lon: String(loc.lon),
     country: loc.country,
     label: loc.label,
-  }).toString();
+  });
+  if (loc.timezone) params.set("tz", loc.timezone);
+  return params.toString();
 }
 
 export function locationFromSearchParams(params: URLSearchParams): ResolvedLocation | null {
@@ -71,5 +75,6 @@ export function locationFromSearchParams(params: URLSearchParams): ResolvedLocat
   const country = params.get("country");
   if (!coords || (country !== "US" && country !== "CA")) return null;
   const label = (params.get("label") ?? "").trim().slice(0, 100) || "your location";
-  return { ...coords, country, label };
+  const tz = params.get("tz");
+  return isValidTimezone(tz) ? { ...coords, country, label, timezone: tz } : { ...coords, country, label };
 }

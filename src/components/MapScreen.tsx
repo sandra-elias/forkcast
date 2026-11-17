@@ -5,7 +5,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
 import type { ResolvedLocation } from "@/lib/geocode";
-import { type CuisineId, RADIUS, locationFromSearchParams, radiusToMeters } from "@/lib/search";
+import { getRestaurants } from "@/lib/restaurantsClient";
+import {
+  type CuisineId,
+  EMPTY_MESSAGE,
+  RADIUS,
+  locationFromSearchParams,
+  radiusToMeters,
+} from "@/lib/search";
 import Filters from "./Filters";
 
 // Load the map only in the browser (Leaflet can't run on the server).
@@ -37,9 +44,28 @@ function MapScreenInner({ location }: { location: ResolvedLocation }) {
   const [openNow, setOpenNow] = useState(true);
   const [excluded, setExcluded] = useState<CuisineId[]>([]);
   const [note, setNote] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const sliderId = useId();
 
   const radiusMeters = radiusToMeters(radius, location.country);
+
+  async function handleSpin() {
+    setIsSearching(true);
+    setNote("");
+    try {
+      const restaurants = await getRestaurants({ location, radiusMeters, openNow, excluded });
+      // Temporary for Stage 5: show what we found. Stage 6 adds the spin + result card.
+      setNote(
+        restaurants.length === 0
+          ? EMPTY_MESSAGE
+          : `${restaurants.length} restaurant${restaurants.length === 1 ? "" : "s"} to spin from. The spin itself arrives in Stage 6.`,
+      );
+    } catch (err) {
+      setNote((err as Error).message);
+    } finally {
+      setIsSearching(false);
+    }
+  }
 
   return (
     <main className="flex flex-1 flex-col lg:flex-row">
@@ -116,17 +142,11 @@ function MapScreenInner({ location }: { location: ResolvedLocation }) {
         <div className="sticky bottom-0 -mx-4 mt-auto bg-background/90 px-4 pt-2 pb-4 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
           <button
             type="button"
-            onClick={() =>
-              // Temporary for Stage 4. Stages 5–6 make this fetch restaurants and spin.
-              setNote(
-                `Ready to spin within ${radius} ${radiusConfig.unit}${openNow ? ", open now" : ""}${
-                  excluded.length ? `, excluding ${excluded.length} cuisine${excluded.length > 1 ? "s" : ""}` : ""
-                }. Spinning arrives in Stage 6.`,
-              )
-            }
-            className="h-16 w-full rounded-2xl bg-button font-display text-2xl font-medium tracking-wide text-background transition hover:bg-button/85 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/30 active:scale-[0.98]"
+            onClick={handleSpin}
+            disabled={isSearching}
+            className="h-16 w-full rounded-2xl bg-button font-display text-2xl font-medium tracking-wide text-background transition hover:bg-button/85 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/30 disabled:cursor-wait disabled:opacity-60 active:scale-[0.98]"
           >
-            SPIN
+            {isSearching ? "Finding restaurants…" : "SPIN"}
           </button>
           <p role="status" aria-live="polite" className="mt-2 min-h-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
             {note}

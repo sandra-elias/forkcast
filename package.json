@@ -13,6 +13,7 @@
   "dependencies": {
     "leaflet": "^1.9.4",
     "next": "16.4.6",
+    "opening_hours": "^3.16.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-leaflet": "^5.0.0",

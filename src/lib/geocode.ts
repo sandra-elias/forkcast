@@ -10,6 +10,8 @@ export type ResolvedLocation = {
   country: Country;
   /** Human-friendly name, e.g. "Los Angeles, CA 90210". */
   label: string;
+  /** IANA time zone, e.g. "America/Los_Angeles". Used to decide "open now". */
+  timezone?: string;
 };
 
 /** The parts of a Geoapify geocoding result we care about. */
@@ -21,6 +23,7 @@ export type GeoapifyResult = {
   city?: string;
   state_code?: string;
   result_type?: string;
+  timezone?: { name?: string };
 };
 
 export const NOT_FOUND_MESSAGE =
@@ -38,6 +41,10 @@ function makeLabel(r: GeoapifyResult, fallbackCode?: string): string {
   const place = [r.city, r.state_code].filter(Boolean).join(", ");
   const code = r.postcode ?? fallbackCode ?? "";
   return [place, code].filter(Boolean).join(" ") || "your location";
+}
+
+function withTimezone(loc: ResolvedLocation, r: GeoapifyResult): ResolvedLocation {
+  return r.timezone?.name ? { ...loc, timezone: r.timezone.name } : loc;
 }
 
 function hasCoords(r: GeoapifyResult): r is GeoapifyResult & { lat: number; lon: number } {
@@ -59,7 +66,7 @@ export function pickPostcodeResult(
     // US results can come back as ZIP+4; compare the first 5 digits only.
     const matches = country === "US" ? got.slice(0, 5) === wanted : got === wanted;
     if (matches && toSupportedCountry(r.country_code) === country && hasCoords(r)) {
-      return { lat: r.lat, lon: r.lon, country, label: makeLabel(r, code) };
+      return withTimezone({ lat: r.lat, lon: r.lon, country, label: makeLabel(r, code) }, r);
     }
   }
   return null;
@@ -74,7 +81,7 @@ export function pickReverseResult(
   const country = toSupportedCountry(r?.country_code);
   if (!r || !country) return null;
   // Keep the user's own coordinates: they're more accurate than the matched address.
-  return { lat, lon, country, label: makeLabel(r) };
+  return withTimezone({ lat, lon, country, label: makeLabel(r) }, r);
 }
 
 /** Parses "lat"/"lon" query strings. Returns null if they aren't real coordinates. */
@@ -96,4 +103,15 @@ export function parseLatLon(
  */
 export function roundCoord(n: number): number {
   return Math.round(n * 1000) / 1000;
+}
+
+/** True if `tz` is a real IANA time zone name like "America/Toronto". */
+export function isValidTimezone(tz: string | null | undefined): tz is string {
+  if (!tz || tz.length > 64) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
 }
