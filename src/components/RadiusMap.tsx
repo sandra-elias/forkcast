@@ -11,6 +11,7 @@ import {
   CircleMarker,
   MapContainer,
   TileLayer,
+  Tooltip,
   useMap,
   ZoomControl,
 } from "react-leaflet";
@@ -47,9 +48,15 @@ function FitToRadius({ lat, lon, radiusMeters }: { lat: number; lon: number; rad
   return null;
 }
 
-type Props = { lat: number; lon: number; radiusMeters: number };
+type Props = {
+  lat: number;
+  lon: number;
+  radiusMeters: number;
+  /** The restaurant the spin landed on, shown as a pin with its name. */
+  pick?: { lat: number; lon: number; name: string } | null;
+};
 
-export default function RadiusMap({ lat, lon, radiusMeters }: Props) {
+export default function RadiusMap({ lat, lon, radiusMeters, pick }: Props) {
   const isDark = useIsDarkMode();
   const apiKey = process.env.NEXT_PUBLIC_GEOAPIFY_MAP_KEY;
 
@@ -90,6 +97,18 @@ export default function RadiusMap({ lat, lon, radiusMeters }: Props) {
         radius={7}
         pathOptions={{ color: isDark ? "#0a0a0a" : "#ffffff", weight: 3, fillColor: ink, fillOpacity: 1 }}
       />
+      {pick && (
+        <CircleMarker
+          key={`${pick.lat},${pick.lon}`}
+          center={[pick.lat, pick.lon]}
+          radius={10}
+          pathOptions={{ color: ink, weight: 3, fillColor: isDark ? "#0a0a0a" : "#ffffff", fillOpacity: 1 }}
+        >
+          <Tooltip permanent direction="top" offset={[0, -10]} className="forkcast-tooltip">
+            {pick.name}
+          </Tooltip>
+        </CircleMarker>
+      )}
       <FitToRadius lat={lat} lon={lon} radiusMeters={radiusMeters} />
     </MapContainer>
   );

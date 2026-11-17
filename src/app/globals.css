@@ -14,6 +14,29 @@
   --font-display: var(--font-space-grotesk);
 }
 
+/* ---------- Spin animations ---------- */
+@theme {
+  --animate-reel: reel 110ms ease-out;
+  --animate-pop: pop 320ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+
+  @keyframes reel {
+    from { transform: translateY(-45%); opacity: 0.15; }
+    to { transform: none; opacity: 1; }
+  }
+  @keyframes pop {
+    from { transform: scale(0.96); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+}
+
+/* Respect "reduce motion" in the device's accessibility settings */
+@media (prefers-reduced-motion: reduce) {
+  .animate-reel,
+  .animate-pop {
+    animation: none;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -88,5 +111,30 @@ body {
   }
   .leaflet-container .leaflet-control-container .leaflet-bar a:hover {
     background: #27272a;
+  }
+}
+
+/* Name label above the picked restaurant's pin */
+.leaflet-container .forkcast-tooltip {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 9999px;
+  background: #171717;
+  color: #fafafa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.leaflet-container .forkcast-tooltip::before {
+  border-top-color: #171717;
+}
+@media (prefers-color-scheme: dark) {
+  .leaflet-container .forkcast-tooltip {
+    background: #e4e4e7;
+    color: #0a0a0a;
+  }
+  .leaflet-container .forkcast-tooltip::before {
+    border-top-color: #e4e4e7;
   }
 }

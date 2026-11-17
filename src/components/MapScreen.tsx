@@ -3,9 +3,14 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import type { ResolvedLocation } from "@/lib/geocode";
+import type { RestaurantWithStatus } from "@/lib/places";
 import { getRestaurants } from "@/lib/restaurantsClient";
+import { forgetSeen, loadSeen, markSeen } from "@/lib/seenStore";
+import { pickUnseen } from "@/lib/spin";
+import ResultCard from "./ResultCard";
+import SpinReel from "./SpinReel";
 import {
   type CuisineId,
   EMPTY_MESSAGE,
@@ -20,6 +25,23 @@ const RadiusMap = dynamic(() => import("./RadiusMap"), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-zinc-200 dark:bg-zinc-800" />,
 });
+
+/** What the bottom of the panel is showing right now. */
+type Phase =
+  | { kind: "idle" }
+  | { kind: "searching" }
+  | { kind: "spinning"; winner: RestaurantWithStatus; names: string[] }
+  | { kind: "result"; winner: RestaurantWithStatus }
+  | { kind: "message"; text: string; resetIds?: string[] };
+
+function shuffle<T>(items: T[]): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export default function MapScreen() {
   const location = locationFromSearchParams(useSearchParams());
@@ -43,29 +65,55 @@ function MapScreenInner({ location }: { location: ResolvedLocation }) {
   const [radius, setRadius] = useState(radiusConfig.default);
   const [openNow, setOpenNow] = useState(true);
   const [excluded, setExcluded] = useState<CuisineId[]>([]);
-  const [note, setNote] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const sliderId = useId();
 
   const radiusMeters = radiusToMeters(radius, location.country);
 
   async function handleSpin() {
-    setIsSearching(true);
-    setNote("");
+    setPhase({ kind: "searching" });
     try {
+      // Cached after the first call, so "spin again" is instant.
       const restaurants = await getRestaurants({ location, radiusMeters, openNow, excluded });
-      // Temporary for Stage 5: show what we found. Stage 6 adds the spin + result card.
-      setNote(
-        restaurants.length === 0
-          ? EMPTY_MESSAGE
-          : `${restaurants.length} restaurant${restaurants.length === 1 ? "" : "s"} to spin from. The spin itself arrives in Stage 6.`,
-      );
+      if (restaurants.length === 0) {
+        setPhase({ kind: "message", text: EMPTY_MESSAGE });
+        return;
+      }
+
+      const winner = pickUnseen(restaurants, loadSeen());
+      if (!winner) {
+        setPhase({
+          kind: "message",
+          text: `You've seen all ${restaurants.length} matching restaurant${restaurants.length === 1 ? "" : "s"}. Try a bigger radius or different filters.`,
+          resetIds: restaurants.map((r) => r.id),
+        });
+        return;
+      }
+      markSeen(winner.id); // no repeats this session
+
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduceMotion || restaurants.length === 1) {
+        setPhase({ kind: "result", winner });
+      } else {
+        const names = shuffle(restaurants.map((r) => r.name)).slice(0, 40);
+        setPhase({ kind: "spinning", winner, names });
+      }
     } catch (err) {
-      setNote((err as Error).message);
-    } finally {
-      setIsSearching(false);
+      setPhase({ kind: "message", text: (err as Error).message });
     }
   }
+
+  function handleStartOver(ids: string[]) {
+    forgetSeen(ids);
+    handleSpin();
+  }
+
+  // Stable function so the reel's timer isn't restarted on every render.
+  const finishSpin = useCallback(() => {
+    setPhase((p) => (p.kind === "spinning" ? { kind: "result", winner: p.winner } : p));
+  }, []);
+
+  const pick = phase.kind === "result" ? phase.winner : null;
 
   return (
     <main className="flex flex-1 flex-col lg:flex-row">
@@ -75,7 +123,7 @@ function MapScreenInner({ location }: { location: ResolvedLocation }) {
         role="region"
         aria-label={`Map of a ${radius} ${radiusConfig.unitLabel} radius around ${location.label}`}
       >
-        <RadiusMap lat={location.lat} lon={location.lon} radiusMeters={radiusMeters} />
+        <RadiusMap lat={location.lat} lon={location.lon} radiusMeters={radiusMeters} pick={pick} />
         {/* Logo badge floating over the map. z-index sits above Leaflet's layers (max 1000). */}
         <Link
           href="/"
@@ -138,20 +186,39 @@ function MapScreenInner({ location }: { location: ResolvedLocation }) {
           onExcludedChange={setExcluded}
         />
 
-        {/* Sticky on phones so SPIN is always reachable */}
-        <div className="sticky bottom-0 -mx-4 mt-auto bg-background/90 px-4 pt-2 pb-4 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
-          <button
-            type="button"
-            onClick={handleSpin}
-            disabled={isSearching}
-            className="h-16 w-full rounded-2xl bg-button font-display text-2xl font-medium tracking-wide text-background transition hover:bg-button/85 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/30 disabled:cursor-wait disabled:opacity-60 active:scale-[0.98]"
-          >
-            {isSearching ? "Finding restaurants…" : "SPIN"}
-          </button>
-          <p role="status" aria-live="polite" className="mt-2 min-h-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
-            {note}
-          </p>
-        </div>
+        {phase.kind === "spinning" ? (
+          <SpinReel names={phase.names} winner={phase.winner.name} onDone={finishSpin} />
+        ) : phase.kind === "result" ? (
+          <ResultCard restaurant={phase.winner} country={location.country} onSpinAgain={handleSpin} />
+        ) : (
+          /* Sticky on phones so SPIN is always reachable */
+          <div className="sticky bottom-0 -mx-4 mt-auto bg-background/90 px-4 pt-2 pb-4 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
+            <button
+              type="button"
+              onClick={handleSpin}
+              disabled={phase.kind === "searching"}
+              className="h-16 w-full rounded-2xl bg-button font-display text-2xl font-medium tracking-wide text-background transition hover:bg-button/85 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/30 disabled:cursor-wait disabled:opacity-60 active:scale-[0.98]"
+            >
+              {phase.kind === "searching" ? "Finding restaurants…" : "SPIN"}
+            </button>
+            <div role="status" aria-live="polite" className="mt-2 min-h-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
+              {phase.kind === "message" && (
+                <>
+                  <p>{phase.text}</p>
+                  {phase.resetIds && (
+                    <button
+                      type="button"
+                      onClick={() => handleStartOver(phase.resetIds!)}
+                      className="mt-1 font-medium text-foreground underline underline-offset-4"
+                    >
+                      Start over with these
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

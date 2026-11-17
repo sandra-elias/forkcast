@@ -24,7 +24,7 @@ Headline font Space Grotesk (medium weight), body font Inter.
 3. Result: ~1.5s spin animation cycling names, then a card with name,
    cuisine, distance, address, website/phone/hours if present.
    Buttons: "Get directions" (Google Maps directions link) and
-   "Nah, spin again" (no repeats in a session).
+   "Spin again" (no repeats in a session).
    Empty state: "No restaurants found — try a bigger radius."
 
 ## Tech
@@ -36,7 +36,10 @@ Headline font Space Grotesk (medium weight), body font Inter.
   NEXT_PUBLIC_GEOAPIFY_MAP_KEY, with required attribution.
 - Cache Places results per location/radius/filters; spin again uses cache.
 - Data is OpenStreetMap-based: no ratings or prices. "Open now" excludes
-  places whose hours say closed; others show "hours unknown".
+  places whose hours say closed. Places with no hours stay in the spin, and
+  the card simply doesn't mention hours (no "hours unknown" label, since
+  most places have none). Show "Open now"/"Closed now" and the hours only
+  when known.
 - Mobile-first, friendly loading and error states.
 - .env.local must be in .gitignore; create .env.example with empty values.
 
