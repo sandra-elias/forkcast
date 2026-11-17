@@ -1,33 +1,55 @@
 "use client";
 
 import { useState } from "react";
+import { LOOKUP_FAILED_MESSAGE, type ResolvedLocation } from "@/lib/geocode";
 import { parsePostalCode } from "@/lib/postalCode";
 
 type Status =
   | { kind: "idle" }
   | { kind: "error"; message: string }
-  | { kind: "locating" }
-  // Temporary "success" states for Stage 2. Later stages replace these with
-  // a real geocoding lookup and a jump to the map screen.
-  | { kind: "code-ok"; message: string }
-  | { kind: "coords-ok"; message: string };
+  | { kind: "loading"; source: "code" | "location" }
+  // Temporary success state for Stage 3. Stage 4 replaces it with a jump to the map screen.
+  | { kind: "found"; location: ResolvedLocation };
 
 const PERMISSION_DENIED_MESSAGE =
   "No problem! Location access is off, so please enter your zip or postal code instead.";
+
+/** Calls one of our own API routes and returns the location, or throws a friendly message. */
+async function fetchLocation(url: string): Promise<ResolvedLocation> {
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    throw new Error("You seem to be offline. Check your connection and try again.");
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error ?? LOOKUP_FAILED_MESSAGE);
+  return body as ResolvedLocation;
+}
 
 export default function LocationForm() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
+  async function lookUp(url: string, source: "code" | "location") {
+    setStatus({ kind: "loading", source });
+    try {
+      const location = await fetchLocation(url);
+      setStatus({ kind: "found", location });
+    } catch (err) {
+      setStatus({ kind: "error", message: (err as Error).message });
+    }
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Check the format right away in the browser, so typos don't need a server trip.
     const result = parsePostalCode(code);
     if (!result.ok) {
       setStatus({ kind: "error", message: result.error });
       return;
     }
-    const label = result.country === "US" ? "US ZIP code" : "Canadian postal code";
-    setStatus({ kind: "code-ok", message: `Got it: ${label} ${result.code}.` });
+    lookUp(`/api/geocode?code=${encodeURIComponent(result.code)}`, "code");
   }
 
   function handleUseLocation() {
@@ -38,14 +60,11 @@ export default function LocationForm() {
       });
       return;
     }
-    setStatus({ kind: "locating" });
+    setStatus({ kind: "loading", source: "location" });
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        setStatus({
-          kind: "coords-ok",
-          message: `Found you at ${latitude.toFixed(3)}, ${longitude.toFixed(3)}.`,
-        });
+        lookUp(`/api/reverse-geocode?lat=${latitude}&lon=${longitude}`, "location");
       },
       (err) => {
         setStatus({
@@ -61,7 +80,13 @@ export default function LocationForm() {
   }
 
   const isError = status.kind === "error";
-  const isLocating = status.kind === "locating";
+  const isLoading = status.kind === "loading";
+  const statusText =
+    status.kind === "error"
+      ? status.message
+      : status.kind === "found"
+        ? `Found: ${status.location.label}. The map is coming in Stage 4.`
+        : "";
 
   return (
     <div className="w-full max-w-sm">
@@ -89,9 +114,10 @@ export default function LocationForm() {
         />
         <button
           type="submit"
-          className="h-14 w-full rounded-2xl bg-button text-lg font-semibold text-background transition hover:bg-button/85 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/30 active:scale-[0.98]"
+          disabled={isLoading}
+          className="h-14 w-full rounded-2xl bg-button text-lg font-semibold text-background transition hover:bg-button/85 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/30 disabled:cursor-wait disabled:opacity-60 active:scale-[0.98]"
         >
-          Let&apos;s eat
+          {isLoading && status.source === "code" ? "Searching…" : "Let’s eat"}
         </button>
       </form>
 
@@ -104,10 +130,10 @@ export default function LocationForm() {
       <button
         type="button"
         onClick={handleUseLocation}
-        disabled={isLocating}
+        disabled={isLoading}
         className="flex h-14 w-full items-center justify-center rounded-2xl border-2 border-zinc-300 text-lg font-semibold transition hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/30 disabled:cursor-wait disabled:opacity-60 active:scale-[0.98] dark:border-zinc-700"
       >
-        {isLocating ? "Finding you…" : "Use my location"}
+        {isLoading && status.source === "location" ? "Finding you…" : "Use my location"}
       </button>
 
       {/* aria-live makes screen readers announce errors and updates. */}
@@ -119,7 +145,7 @@ export default function LocationForm() {
           isError ? "font-medium text-red-600 dark:text-red-400" : "text-zinc-600 dark:text-zinc-300"
         }`}
       >
-        {"message" in status ? status.message : ""}
+        {statusText}
       </p>
     </div>
   );
