@@ -1,12 +1,14 @@
 # Forkcast — Restaurant Roulette (MVP)
 
-App name: **Forkcast** (page title, header, browser tab).
-Landing headline: **"What's for dinner?"**
+App name: **Forkcast** (page title, big landing headline, browser tab).
+Tagline under it, in small text: **"What's for dinner?"**
+Style: modern and minimal, no emojis. Black & white only (no accent color);
+Headline font Space Grotesk (medium weight), body font Inter.
 
 ## Scope: US and Canada only
 
 ## User flow
-1. Landing: "What's for dinner?" headline, one input "Enter zip or postal
+1. Landing: "Forkcast" headline with "What's for dinner?" tagline, one input "Enter zip or postal
    code", and a "Use my location" button (browser geolocation).
    - Valid formats: US = 5 digits (ZIP+4 ok); Canada = A1A 1A1
      (space optional, any case). Figure out the country from the format.
