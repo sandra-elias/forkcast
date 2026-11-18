@@ -44,7 +44,8 @@ Headline font Space Grotesk (medium weight), body font Inter.
 - .env.local must be in .gitignore (never committed).
 
 ## Out of scope
-Accounts, group rooms, favorites, ratings, price filter, analytics.
+Accounts, group rooms, favorites, ratings, price filter.
+(Vercel Web Analytics was added after launch for page-view counts.)
 
 ## Stages
 1. Tool check + project setup + git init + .env.local

@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
@@ -29,6 +30,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           before React loads. This ignores those attribute differences on <body> only. */}
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
+        {/* Vercel Web Analytics: counts page views on the live site (no cookies; off in development). */}
+        <Analytics />
       </body>
     </html>
   );
