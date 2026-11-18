@@ -25,31 +25,6 @@ Enter a US zip code or Canadian postal code (or share your location), set how fa
 
 Restaurant data comes from OpenStreetMap, so there are no ratings or prices, and hours are only shown when listed.
 
-## Run it locally
-
-You'll need Node.js 20+ and a free [Geoapify](https://www.geoapify.com/) API key.
-
-```bash
-npm install
-```
-
-Create a file named `.env.local` in the project folder:
-
-```
-GEOAPIFY_KEY=your_server_key
-NEXT_PUBLIC_GEOAPIFY_MAP_KEY=your_map_key
-```
-
-- `GEOAPIFY_KEY` is used on the server for geocoding and places. Keep it secret.
-- `NEXT_PUBLIC_GEOAPIFY_MAP_KEY` loads the map tiles in the browser. Restrict it to your domain in the Geoapify dashboard.
-
-Then start it:
-
-```bash
-npm run dev     # http://localhost:3000
-npm test        # run the test suite
-```
-
 ## Credits
 
 Map tiles and data: [Geoapify](https://www.geoapify.com/), [OpenMapTiles](https://openmaptiles.org/), and [© OpenStreetMap contributors](https://www.openstreetmap.org/copyright).
